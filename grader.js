@@ -99,7 +99,6 @@ if (require.main == module) {
     }
     var outJson = JSON.stringify(checkJson, null, 4);
     console.log(outJson);
-    fs.unlinkSync(csvfile);
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
