@@ -24,8 +24,11 @@ References:
 var fs = require('fs');
 var program = require ('commander');
 var cheerio = require('cheerio');
+var rest = require('restler');
+var csvfile = 'grader_index.html';
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var URL_DEFAULT = "index.html";
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -42,6 +45,17 @@ var cheerioHtmlFile = function(htmlfile) {
 
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));	
+};
+
+var restlerURL = function(url) {
+    rest.get(url).on('complete', function(result) {
+	if (result instanceof Error) {
+	    console.log("Error: " + result.message);
+	    process.exit(1);
+	} else {
+	    fs.writeFileSync(csvfile, result);
+	}
+    });
 };
 
 var checkHtmlFile = function(htmlfile,checksfile) {
@@ -63,10 +77,29 @@ if (require.main == module) {
     program
       .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
       .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+      .option('-u, --url <url>', 'URL link', null, URL_DEFAULT)
       .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
+    
+    var argv_index = -1;
+    if (process.argv.length == 5)
+	argv_index = 3;
+    else if (process.argv.length == 6)
+	argv_index = 4;
+    else {
+	console.log("ARGV did not set");
+	process.exit(1);
+    }
+
+    if (process.argv[argv_index]=='--file') {
+	var checkJson = checkHtmlFile(program.file, program.checks);
+    }
+    else if (process.argv[argv_index]=='--url') {
+	restlerURL(program.url);
+	var checkJson = checkHtmlFile(csvfile,program.checks);
+    }
     var outJson = JSON.stringify(checkJson, null, 4);
     console.log(outJson);
+    fs.unlinkSync(csvfile);
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
